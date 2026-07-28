@@ -8,7 +8,7 @@ Usage:
   python run.py --dry-run        # Search + analyze, don't save to DB
   python run.py --force          # Re-analyze all listings (ignore dedup)
   python run.py --zip 94087      # Override zip code
-  python run.py --address "123 Main St, Sunnyvale, CA 94087"  # Single address
+  python run.py --address "123 Main St, Sunnyvale, CA 94087" --price 1700000  # Single address
 """
 import argparse
 import logging
@@ -41,6 +41,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Re-analyze all listings (skip dedup)")
     parser.add_argument("--zip", type=str, help="Override search zip code")
     parser.add_argument("--address", type=str, help="Analyze a single address (skip search)")
+    parser.add_argument("--price", type=float, help="List price for --address mode (required with --address)")
     parser.add_argument("--quiet", action="store_true", help="Minimal output")
     parser.add_argument("--no-comps", action="store_true", help="Skip rent/sale comps (faster, uses $/sqft estimate)")
     args = parser.parse_args()
@@ -59,12 +60,14 @@ def main():
 
     # ── Step 2: Search listings ──────────────────────────────
     if args.address:
-        # Single address mode — create a synthetic listing
-        logger.info(f"Analyzing single address: {args.address}")
+        # Single address mode — require --price
+        if not args.price:
+            parser.error("--price is required when using --address")
+        logger.info(f"Analyzing single address: {args.address} (${args.price:,.0f})")
         raw_listing = {
             "listing_id": args.address.replace(" ", "_").lower(),
             "formatted_address": args.address,
-            "list_price": 0,  # User would need to provide this
+            "list_price": args.price,
             "beds": SEARCH["beds_min"],
             "full_baths": SEARCH["baths_min"],
             "sqft": (SEARCH["sqft_min"] + SEARCH["sqft_max"]) // 2,
