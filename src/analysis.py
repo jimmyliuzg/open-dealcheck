@@ -217,14 +217,12 @@ def analyze(enriched: dict) -> AnalysisResult:
     return result
 
 
-def _calc_projections(r: AnalysisResult, f: dict) -> list[dict]:
+def _year_by_year(r: AnalysisResult, f: dict):
     """
-    Year-by-year projection table.
-    
-    Each row: year, property_value, loan_balance, equity, 
-              annual_cash_flow, cumulative_cash_flow, total_profit
+    Shared year-by-year simulation generator.
+    Yields (year, value, balance, annual_rent, annual_noi, annual_cf, cum_cf)
+    for each year of the hold period.
     """
-    projections = []
     value = r.list_price
     balance = r.loan_amount
     cum_cf = 0
@@ -232,32 +230,35 @@ def _calc_projections(r: AnalysisResult, f: dict) -> list[dict]:
     annual_pi = r.monthly_pi * 12
 
     for year in range(1, f["hold_years"] + 1):
-        # Property appreciation
         value *= (1 + f["appreciation_rate"])
-
-        # Rent growth → recalculate NOI
         annual_rent *= (1 + f["rent_growth_rate"])
 
-        # Expense growth (tax, insurance, maintenance, mgmt)
         annual_vacancy = annual_rent * f["vacancy_rate"]
         annual_egi = annual_rent - annual_vacancy
         annual_opex = r.annual_expenses * (1 + f["expense_growth_rate"]) ** year
         annual_noi = annual_egi - annual_opex
-
-        # Cash flow = NOI - debt service
         annual_cf = annual_noi - annual_pi
         cum_cf += annual_cf
 
-        # Loan balance (amortization)
         for _ in range(12):
             if balance > 0:
                 interest = balance * (f["interest_rate"] / 12)
                 principal = annual_pi / 12 - interest
                 balance = max(0, balance - principal)
 
+        yield year, value, balance, annual_rent, annual_noi, annual_cf, cum_cf
+
+
+def _calc_projections(r: AnalysisResult, f: dict) -> list[dict]:
+    """
+    Year-by-year projection table.
+    Each row: year, property_value, loan_balance, equity,
+              annual_cash_flow, cumulative_cash_flow, total_profit
+    """
+    projections = []
+    for year, value, balance, annual_rent, annual_noi, annual_cf, cum_cf in _year_by_year(r, f):
         equity = value - max(0, balance)
         total_profit = equity + cum_cf - r.total_cash_needed
-
         projections.append({
             "year": year,
             "property_value": round(value, 0),
@@ -269,41 +270,18 @@ def _calc_projections(r: AnalysisResult, f: dict) -> list[dict]:
             "cumulative_cash_flow": round(cum_cf, 0),
             "total_profit": round(total_profit, 0),
         })
-
     return projections
 
 
 def _calc_irr(r: AnalysisResult, f: dict) -> Optional[float]:
     """
     Internal Rate of Return on the investment.
-    
     Cash flows: Year 0 = -total_cash_needed, Years 1-N = annual cash flow + equity gain
     """
     cash_flows = [-r.total_cash_needed]
 
-    # Simulate year-by-year for IRR
-    value = r.list_price
-    balance = r.loan_amount
-    annual_rent = r.annual_gross_rent
-    annual_pi = r.monthly_pi * 12
-
-    for year in range(1, f["hold_years"] + 1):
-        value *= (1 + f["appreciation_rate"])
-        annual_rent *= (1 + f["rent_growth_rate"])
-        annual_vacancy = annual_rent * f["vacancy_rate"]
-        annual_egi = annual_rent - annual_vacancy
-        annual_opex = r.annual_expenses * (1 + f["expense_growth_rate"]) ** year
-        annual_noi = annual_egi - annual_opex
-        annual_cf = annual_noi - annual_pi
-
-        for _ in range(12):
-            if balance > 0:
-                interest = balance * (f["interest_rate"] / 12)
-                principal = annual_pi / 12 - interest
-                balance = max(0, balance - principal)
-
+    for year, value, balance, annual_rent, annual_noi, annual_cf, cum_cf in _year_by_year(r, f):
         if year == f["hold_years"]:
-            # Final year: cash flow + sale proceeds (equity)
             sale_proceeds = value - max(0, balance)
             cash_flows.append(annual_cf + sale_proceeds)
         else:
