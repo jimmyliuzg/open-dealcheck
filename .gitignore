@@ -34,3 +34,7 @@ build/
 
 # Logs
 *.log
+
+# Planning docs (local only)
+PLAN.md
+IMPL_PLAN.md
