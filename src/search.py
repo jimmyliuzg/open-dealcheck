@@ -42,7 +42,9 @@ def search_listings(
         "baths_max": baths_max if baths_max is not None else SEARCH.get("baths_max"),
         "sqft_min": sqft_min if sqft_min is not None else SEARCH.get("sqft_min"),
         "sqft_max": sqft_max if sqft_max is not None else SEARCH.get("sqft_max"),
-        "lot_sqft_min": lot_sqft_min if lot_sqft_min is not None else SEARCH.get("lot_sqft_min"),
+        # NOTE: lot_sqft_min is NOT passed to HomeHarvest — Realtor.com
+        # often returns NaN for lot_sqft, and HomeHarvest filters out NaN
+        # entries, killing all results. Filter is done post-hoc below.
         "price_min": price_min if price_min is not None else SEARCH.get("price_min"),
         "price_max": price_max if price_max is not None else SEARCH.get("price_max"),
     }
@@ -75,7 +77,7 @@ def normalize_listing(row: pd.Series) -> dict:
                     return val
         return default
 
-    return {
+    normalized = {
         "listing_id": str(_get(row, "listing_id", "id", default="")),
         "property_url": _get(row, "property_url", "url", "link", default=""),
         "formatted_address": _get(row, "formatted_address", "address", "street_address", default=""),
@@ -96,3 +98,12 @@ def normalize_listing(row: pd.Series) -> dict:
         "latitude": _get(row, "latitude", "lat", default=0),
         "longitude": _get(row, "longitude", "lon", "lng", default=0),
     }
+
+    # Post-hoc lot size filter (HomeHarvest can't filter NaN lot_sqft)
+    lot_min = SEARCH.get("lot_sqft_min")
+    if lot_min and normalized["lot_sqft"] > 0 and normalized["lot_sqft"] < lot_min:
+        return None  # Caller should skip this listing
+    if lot_min and normalized["lot_sqft"] == 0:
+        logger.debug(f"Listing {normalized['formatted_address']}: lot_sqft unknown, including anyway")
+
+    return normalized

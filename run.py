@@ -83,7 +83,7 @@ def main():
             logger.info("No listings found matching criteria.")
             return
 
-        listings = [normalize_listing(row) for _, row in df.iterrows()]
+        listings = [n for n in (normalize_listing(row) for _, row in df.iterrows()) if n is not None]
         logger.info(f"Found {len(listings)} listing(s)")
 
     # ── Step 3: Dedup (unless --force or --dry-run) ──────────
