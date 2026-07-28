@@ -1,0 +1,36 @@
+# Dependencies
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data (personal — never commit)
+data/
+*.db
+
+# Reports (generated — never commit)
+data/reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log

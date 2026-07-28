@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Property Analysis — {{ address }}</title>
+<style>
+  @page { size: letter; margin: 0.6in 0.7in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.45; }
+
+  /* ── Header ─────────────────────────────────────── */
+  .header { margin-bottom: 18pt; border-bottom: 2.5pt solid #2563eb; padding-bottom: 10pt; }
+  .header h1 { font-size: 16pt; font-weight: 700; color: #111; margin-bottom: 3pt; }
+  .header .subtitle { font-size: 10pt; color: #666; }
+
+  /* ── Summary Bar ────────────────────────────────── */
+  .summary-bar { display: flex; gap: 0; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6pt; margin-bottom: 16pt; overflow: hidden; }
+  .summary-item { flex: 1; text-align: center; padding: 8pt 4pt; border-right: 1px solid #e2e8f0; }
+  .summary-item:last-child { border-right: none; }
+  .summary-item .label { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5pt; color: #64748b; margin-bottom: 2pt; }
+  .summary-item .value { font-size: 13pt; font-weight: 700; color: #1e293b; }
+  .summary-item .value.positive { color: #16a34a; }
+  .summary-item .value.negative { color: #dc2626; }
+
+  /* ── Sections ───────────────────────────────────── */
+  .section { margin-bottom: 14pt; }
+  .section-title { font-size: 11pt; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.4pt; border-bottom: 1.5pt solid #dbeafe; padding-bottom: 3pt; margin-bottom: 8pt; }
+
+  /* ── Tables ─────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6pt; }
+  th { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.3pt; color: #64748b; font-weight: 600; text-align: left; padding: 4pt 6pt; border-bottom: 1.5pt solid #e2e8f0; }
+  td { padding: 4pt 6pt; border-bottom: 1px solid #f1f5f9; font-size: 9.5pt; }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.bold { font-weight: 600; }
+  tr.highlight { background: #f0fdf4; }
+  tr.highlight td { font-weight: 600; }
+
+  /* ── Two-column layout ──────────────────────────── */
+  .two-col { display: flex; gap: 16pt; }
+  .two-col > div { flex: 1; }
+
+  /* ── Metric cards ───────────────────────────────── */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8pt; margin-bottom: 8pt; }
+  .metric-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4pt; padding: 6pt 8pt; text-align: center; }
+  .metric-card .mc-label { font-size: 7.5pt; text-transform: uppercase; color: #64748b; letter-spacing: 0.3pt; }
+  .metric-card .mc-value { font-size: 14pt; font-weight: 700; color: #1e293b; margin-top: 1pt; }
+  .metric-card .mc-value.green { color: #16a34a; }
+  .metric-card .mc-value.red { color: #dc2626; }
+  .metric-card .mc-value.blue { color: #2563eb; }
+
+  /* ── Assumptions footer ─────────────────────────── */
+  .assumptions { font-size: 8pt; color: #94a3b8; margin-top: 16pt; padding-top: 8pt; border-top: 1px solid #e2e8f0; columns: 2; column-gap: 20pt; }
+  .assumptions .a-item { margin-bottom: 2pt; }
+
+  /* ── Utility ────────────────────────────────────── */
+  .text-right { text-align: right; }
+  .text-green { color: #16a34a; }
+  .text-red { color: #dc2626; }
+  .text-muted { color: #94a3b8; }
+  .mt-8 { margin-top: 8pt; }
+  .mb-4 { margin-bottom: 4pt; }
+
+  /* ── Page break for projections ─────────────────── */
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════ HEADER -->
+<div class="header">
+  <h1>{{ address }}</h1>
+  <div class="subtitle">
+    {{ beds }} bed · {{ baths }} bath · {{ "{:,.0f}".format(sqft) }} sqft
+    {% if lot_sqft %} · {{ "{:,.0f}".format(lot_sqft) }} sqft lot{% endif %}
+    {% if year_built %} · Built {{ year_built }}{% endif %}
+    &nbsp;|&nbsp; Generated {{ generated_date }}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ SUMMARY BAR -->
+<div class="summary-bar">
+  <div class="summary-item">
+    <div class="label">List Price</div>
+    <div class="value">${{ "{:,.0f}".format(list_price) }}</div>
+  </div>
+  <div class="summary-item">
+    <div class="label">Est. Monthly Rent</div>
+    <div class="value">${{ "{:,.0f}".format(estimated_monthly_rent) }}</div>
+  </div>
+  <div class="summary-item">
+    <div class="label">Monthly Cash Flow</div>
+    <div class="value {{ 'positive' if monthly_cash_flow >= 0 else 'negative' }}">
+      ${{ "{:,.0f}".format(monthly_cash_flow) }}
+    </div>
+  </div>
+  <div class="summary-item">
+    <div class="label">Cap Rate</div>
+    <div class="value blue">{{ "{:.1f}".format(cap_rate) }}%</div>
+  </div>
+  <div class="summary-item">
+    <div class="label">Cash-on-Cash</div>
+    <div class="value {{ 'positive' if coc_return >= 0 else 'negative' }}">
+      {{ "{:.1f}".format(coc_return) }}%
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ PURCHASE ANALYSIS -->
+<div class="section">
+  <div class="section-title">Purchase Analysis</div>
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><td>List Price</td><td class="num">${{ "{:,.0f}".format(list_price) }}</td></tr>
+        <tr><td>Down Payment ({{ "{:.0f}".format(down_payment_pct) }}%)</td><td class="num">${{ "{:,.0f}".format(down_payment) }}</td></tr>
+        <tr><td>Loan Amount</td><td class="num">${{ "{:,.0f}".format(loan_amount) }}</td></tr>
+        <tr><td>Interest Rate</td><td class="num">{{ "{:.2f}".format(interest_rate_pct) }}%</td></tr>
+        <tr><td>Loan Term</td><td class="num">{{ loan_term_years }} years</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <tr><td>Closing Costs</td><td class="num">${{ "{:,.0f}".format(closing_costs) }}</td></tr>
+        <tr><td>Rehab Budget</td><td class="num">${{ "{:,.0f}".format(rehab_budget) }}</td></tr>
+        <tr class="highlight"><td><strong>Total Cash Needed</strong></td><td class="num"><strong>${{ "{:,.0f}".format(total_cash_needed) }}</strong></td></tr>
+        <tr><td>Price / sqft</td><td class="num">${{ "{:,.0f}".format(price_per_sqft) }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ MONTHLY CASH FLOW -->
+<div class="section">
+  <div class="section-title">Monthly Cash Flow</div>
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><td>Gross Rent</td><td class="num">${{ "{:,.0f}".format(estimated_monthly_rent) }}</td></tr>
+        <tr><td>Vacancy ({{ "{:.0f}".format(vacancy_pct) }}%)</td><td class="num text-red">-${{ "{:,.0f}".format(vacancy_loss) }}</td></tr>
+        <tr><td><strong>Effective Gross Income</strong></td><td class="num bold">${{ "{:,.0f}".format(effective_gross_income) }}</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <tr><td>Mortgage (P&I)</td><td class="num">-${{ "{:,.0f}".format(monthly_pi) }}</td></tr>
+        <tr><td>Property Tax</td><td class="num">-${{ "{:,.0f}".format(monthly_tax) }}</td></tr>
+        <tr><td>Insurance</td><td class="num">-${{ "{:,.0f}".format(monthly_insurance) }}</td></tr>
+        <tr><td>Management ({{ "{:.0f}".format(mgmt_pct) }}%)</td><td class="num">-${{ "{:,.0f}".format(mgmt_fee) }}</td></tr>
+        <tr><td>Maintenance</td><td class="num">-${{ "{:,.0f}".format(maintenance) }}</td></tr>
+        <tr class="highlight"><td><strong>Net Cash Flow</strong></td>
+          <td class="num {{ 'text-green' if monthly_cash_flow >= 0 else 'text-red' }}">
+            <strong>${{ "{:,.0f}".format(monthly_cash_flow) }}</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ RETURN METRICS -->
+<div class="section">
+  <div class="section-title">Return Metrics</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="mc-label">Cap Rate</div>
+      <div class="mc-value blue">{{ "{:.1f}".format(cap_rate) }}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">Cash-on-Cash</div>
+      <div class="mc-value {{ 'green' if coc_return >= 0 else 'red' }}">{{ "{:.1f}".format(coc_return) }}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">IRR ({{ hold_years }}yr)</div>
+      <div class="mc-value {{ 'green' if irr and irr > 0 else 'red' }}">{{ "{:.1f}".format(irr) if irr else 'N/A' }}{% if irr %}%{% endif %}</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">GRM</div>
+      <div class="mc-value">{{ "{:.1f}".format(grm) }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">DCR</div>
+      <div class="mc-value {{ 'green' if dcr >= 1.25 else 'red' }}">{{ "{:.2f}".format(dcr) }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">Rent-to-Value</div>
+      <div class="mc-value">{{ "{:.2f}".format(rent_to_value) }}%</div>
+    </div>
+  </div>
+  <table>
+    <tr><td>Break-Even Ratio</td><td class="num">{{ "{:.1f}".format(break_even_ratio) }}%</td></tr>
+    <tr><td>Annual NOI</td><td class="num">${{ "{:,.0f}".format(annual_noi) }}</td></tr>
+    <tr><td>Annual Cash Flow</td><td class="num ${{ 'text-green' if annual_cash_flow >= 0 else 'text-red' }}">${{ "{:,.0f}".format(annual_cash_flow) }}</td></tr>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════ 10-YEAR PROJECTIONS -->
+<div class="page-break"></div>
+<div class="section">
+  <div class="section-title">{{ hold_years }}-Year Projections</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th class="text-right">Property Value</th>
+        <th class="text-right">Loan Balance</th>
+        <th class="text-right">Equity</th>
+        <th class="text-right">Annual Rent</th>
+        <th class="text-right">Cash Flow</th>
+        <th class="text-right">Cumulative CF</th>
+        <th class="text-right">Total Profit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in projections %}
+      <tr class="{{ 'highlight' if p.year == hold_years else '' }}">
+        <td>{{ p.year }}</td>
+        <td class="num">${{ "{:,.0f}".format(p.property_value) }}</td>
+        <td class="num">${{ "{:,.0f}".format(p.loan_balance) }}</td>
+        <td class="num">${{ "{:,.0f}".format(p.equity) }}</td>
+        <td class="num">${{ "{:,.0f}".format(p.annual_rent) }}</td>
+        <td class="num {{ 'text-green' if p.annual_cash_flow >= 0 else 'text-red' }}">
+          ${{ "{:,.0f}".format(p.annual_cash_flow) }}
+        </td>
+        <td class="num ${{ 'text-green' if p.cumulative_cash_flow >= 0 else 'text-red' }}">
+          ${{ "{:,.0f}".format(p.cumulative_cash_flow) }}
+        </td>
+        <td class="num {{ 'text-green' if p.total_profit >= 0 else 'text-red' }}">
+          ${{ "{:,.0f}".format(p.total_profit) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════════ ASSUMPTIONS -->
+<div class="assumptions">
+  <div class="section-title" style="margin-bottom: 6pt;">Assumptions</div>
+  {% for key, value in assumptions.items() %}
+  <div class="a-item"><strong>{{ key }}:</strong> {{ value }}</div>
+  {% endfor %}
+</div>
+
+</body>
+</html>
