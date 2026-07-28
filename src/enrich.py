@@ -1,15 +1,20 @@
 """
 OpenDealCheck — Property Enrichment
 Layer 2: Adds calculated financial fields to raw listing data.
+Integrates comp data when available for better rent estimation.
 """
 import numpy as np
+from typing import Optional
 
 from src.config import FINANCIAL
 
 
-def enrich_listing(row: dict) -> dict:
+def enrich_listing(row: dict, comps=None) -> dict:
     """
     Take a normalized listing dict and add PITI, closing costs, cash needed.
+    
+    If comps (CompsResult) is provided, uses comp-based rent estimation
+    instead of the simple $/sqft fallback.
     
     Modifies the dict in-place and returns it.
     """
@@ -56,8 +61,11 @@ def enrich_listing(row: dict) -> dict:
     sqft = row.get("sqft", 0)
     price_per_sqft = price / sqft if sqft > 0 else 0
 
-    # ── Estimated rent ────────────────────────────────────────
-    estimated_monthly_rent = sqft * f["rent_estimate_sqft"] if sqft > 0 else 0
+    # ── Estimated rent (comps-aware) ──────────────────────────
+    if comps and comps.estimated_rent > 0:
+        estimated_monthly_rent = comps.estimated_rent
+    else:
+        estimated_monthly_rent = sqft * f["rent_estimate_sqft"] if sqft > 0 else 0
 
     row.update({
         "down_payment": round(down_payment, 2),
@@ -71,4 +79,19 @@ def enrich_listing(row: dict) -> dict:
         "price_per_sqft": round(price_per_sqft, 2),
         "estimated_monthly_rent": round(estimated_monthly_rent, 2),
     })
+
+    # ── Attach comp metadata if available ─────────────────────
+    if comps:
+        row["rent_source"] = comps.rent_source
+        row["rent_comp_count"] = comps.rent_comp_count
+        row["median_rent"] = comps.median_rent
+        row["median_rent_per_sqft"] = comps.median_rent_per_sqft
+        row["arv"] = comps.arv
+        row["arv_source"] = comps.arv_source
+        row["sale_comp_count"] = comps.sale_comp_count
+        row["median_sale_price"] = comps.median_sale_price
+        row["median_sale_price_per_sqft"] = comps.median_sale_price_per_sqft
+        row["rent_comps"] = comps.rent_comps
+        row["sale_comps"] = comps.sale_comps
+
     return row

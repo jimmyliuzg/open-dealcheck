@@ -72,6 +72,17 @@ class AnalysisResult:
     # ── IRR ───────────────────────────────────────────────────
     irr: Optional[float] = None
 
+    # ── Market comps ──────────────────────────────────────────
+    rent_source: str = ""           # "comps" or "estimate"
+    rent_comp_count: int = 0
+    median_rent: float = 0
+    median_rent_per_sqft: float = 0
+    sale_comp_count: int = 0
+    median_sale_price: float = 0
+    median_sale_price_per_sqft: float = 0
+    arv: float = 0                  # After Repair Value
+    arv_source: str = ""            # "comps" or "listing_price"
+
     # ── Projections ───────────────────────────────────────────
     projections: list = field(default_factory=list)
 
@@ -102,6 +113,17 @@ def analyze(enriched: dict) -> AnalysisResult:
     result.rehab_budget = f["rehab_budget"]
     result.total_cash_needed = enriched.get("total_cash_needed", 0)
     result.price_per_sqft = enriched.get("price_per_sqft", 0)
+
+    # ── Market comps (from enrichment) ────────────────────────
+    result.rent_source = enriched.get("rent_source", "estimate")
+    result.rent_comp_count = enriched.get("rent_comp_count", 0)
+    result.median_rent = enriched.get("median_rent", 0)
+    result.median_rent_per_sqft = enriched.get("median_rent_per_sqft", 0)
+    result.sale_comp_count = enriched.get("sale_comp_count", 0)
+    result.median_sale_price = enriched.get("median_sale_price", 0)
+    result.median_sale_price_per_sqft = enriched.get("median_sale_price_per_sqft", 0)
+    result.arv = enriched.get("arv", 0)
+    result.arv_source = enriched.get("arv_source", "listing_price")
 
     # ── Monthly PITI (from enrichment) ────────────────────────
     result.monthly_pi = enriched.get("monthly_pi", 0)

@@ -21,9 +21,12 @@ _template_env = Environment(
 )
 
 
-def generate_report(analysis: AnalysisResult) -> str:
+def generate_report(analysis: AnalysisResult, enriched: dict = None) -> str:
     """
     Generate a PDF report from an AnalysisResult.
+    
+    If enriched dict is provided, comp data (rent_comps, sale_comps) is
+    passed through to the template for the Market Comparables section.
     
     Returns the path to the generated PDF.
     """
@@ -82,6 +85,19 @@ def generate_report(analysis: AnalysisResult) -> str:
 
         # Projections
         "projections": analysis.projections,
+
+        # Market comps
+        "rent_source": analysis.rent_source,
+        "rent_comp_count": analysis.rent_comp_count,
+        "median_rent": analysis.median_rent,
+        "median_rent_per_sqft": analysis.median_rent_per_sqft,
+        "sale_comp_count": analysis.sale_comp_count,
+        "median_sale_price": analysis.median_sale_price,
+        "median_sale_price_per_sqft": analysis.median_sale_price_per_sqft,
+        "arv": analysis.arv,
+        "arv_source": analysis.arv_source,
+        "rent_comps_list": enriched.get("rent_comps", []),
+        "sale_comps_list": enriched.get("sale_comps", []),
 
         # Assumptions footer
         "assumptions": {

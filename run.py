@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from src.config import SEARCH, DB_PATH
 from src.db import init_db, is_new_listing, save_listing, mark_analyzed, get_stats
 from src.search import search_listings, normalize_listing
+from src.comps import compute_comps
 from src.enrich import enrich_listing
 from src.analysis import analyze
 from src.report import generate_report
@@ -41,6 +42,7 @@ def main():
     parser.add_argument("--zip", type=str, help="Override search zip code")
     parser.add_argument("--address", type=str, help="Analyze a single address (skip search)")
     parser.add_argument("--quiet", action="store_true", help="Minimal output")
+    parser.add_argument("--no-comps", action="store_true", help="Skip rent/sale comps (faster, uses $/sqft estimate)")
     args = parser.parse_args()
 
     if not args.quiet:
@@ -111,8 +113,21 @@ def main():
         address = listing.get("formatted_address", "Unknown")
         logger.info(f"  → {address}")
 
-        # Enrich
-        enriched = enrich_listing(listing)
+        # Fetch comps (unless --no-comps)
+        comps = None
+        if not args.no_comps:
+            logger.info(f"    Fetching market comps...")
+            comps = compute_comps(
+                address=address,
+                beds=listing.get("beds", 0),
+                baths=listing.get("full_baths", 0),
+                sqft=listing.get("sqft", 0),
+                list_price=listing.get("list_price", 0),
+            )
+            logger.info(f"    Rent comps: {comps.rent_comp_count}, Sale comps: {comps.sale_comp_count}")
+
+        # Enrich (with comps data)
+        enriched = enrich_listing(listing, comps=comps)
 
         # Analyze
         result = analyze(enriched)
@@ -123,7 +138,7 @@ def main():
         listing["coc_return"] = result.coc_return
 
         # Generate PDF
-        report_path = generate_report(result)
+        report_path = generate_report(result, enriched=enriched)
         logger.info(f"    Report: {report_path}")
 
         # Save to DB

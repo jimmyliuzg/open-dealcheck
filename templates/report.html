@@ -194,6 +194,69 @@
   </table>
 </div>
 
+<!-- ════════════════════════════════════════════════ MARKET COMPS -->
+{% if rent_comp_count > 0 or sale_comp_count > 0 %}
+<div class="section">
+  <div class="section-title">Market Comparables</div>
+  <div class="two-col">
+    <div>
+      <h4 style="font-size:9pt; color:#475569; margin-bottom:4pt;">Rental Comps ({{ rent_comp_count }} found)</h4>
+      {% if rent_comp_count > 0 %}
+      <table>
+        <tr><td>Median Rent</td><td class="num">${{ "{:,.0f}".format(median_rent) }}/mo</td></tr>
+        <tr><td>Median $/sqft</td><td class="num">${{ "{:.2f}".format(median_rent_per_sqft) }}</td></tr>
+        <tr><td>Rent Source</td><td class="num">{{ rent_source }}</td></tr>
+      </table>
+      {% if rent_comps_list %}
+      <table style="margin-top:4pt;">
+        <thead><tr><th>Address</th><th class="text-right">Rent</th><th class="text-right">Beds</th><th class="text-right">Sqft</th></tr></thead>
+        <tbody>
+          {% for rc in rent_comps_list[:5] %}
+          <tr>
+            <td style="font-size:8pt;">{{ rc.address[:40] }}</td>
+            <td class="num">${{ "{:,.0f}".format(rc.price) }}</td>
+            <td class="num">{{ rc.beds }}</td>
+            <td class="num">{{ "{:,.0f}".format(rc.sqft) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% else %}
+      <p style="font-size:9pt; color:#94a3b8;">No rental comps found. Using $/sqft estimate.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h4 style="font-size:9pt; color:#475569; margin-bottom:4pt;">Sale Comps ({{ sale_comp_count }} found)</h4>
+      {% if sale_comp_count > 0 %}
+      <table>
+        <tr><td>Median Sale Price</td><td class="num">${{ "{:,.0f}".format(median_sale_price) }}</td></tr>
+        <tr><td>Median $/sqft</td><td class="num">${{ "{:.2f}".format(median_sale_price_per_sqft) }}</td></tr>
+        <tr><td>ARV Estimate</td><td class="num">${{ "{:,.0f}".format(arv) }}</td></tr>
+      </table>
+      {% if sale_comps_list %}
+      <table style="margin-top:4pt;">
+        <thead><tr><th>Address</th><th class="text-right">Sold Price</th><th class="text-right">Beds</th><th class="text-right">Sqft</th></tr></thead>
+        <tbody>
+          {% for sc in sale_comps_list[:5] %}
+          <tr>
+            <td style="font-size:8pt;">{{ sc.address[:40] }}</td>
+            <td class="num">${{ "{:,.0f}".format(sc.price) }}</td>
+            <td class="num">{{ sc.beds }}</td>
+            <td class="num">{{ "{:,.0f}".format(sc.sqft) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% else %}
+      <p style="font-size:9pt; color:#94a3b8;">No sale comps found. Using listing price.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- ════════════════════════════════════════════════ 10-YEAR PROJECTIONS -->
 <div class="page-break"></div>
 <div class="section">
