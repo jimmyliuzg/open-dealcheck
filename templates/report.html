@@ -190,7 +190,7 @@
   <table>
     <tr><td>Break-Even Ratio</td><td class="num">{{ "{:.1f}".format(break_even_ratio) }}%</td></tr>
     <tr><td>Annual NOI</td><td class="num">${{ "{:,.0f}".format(annual_noi) }}</td></tr>
-    <tr><td>Annual Cash Flow</td><td class="num ${{ 'text-green' if annual_cash_flow >= 0 else 'text-red' }}">${{ "{:,.0f}".format(annual_cash_flow) }}</td></tr>
+    <td class="num {{ 'text-green' if annual_cash_flow >= 0 else 'text-red' }}">${{ "{:,.0f}".format(annual_cash_flow) }}</td>
   </table>
 </div>
 
@@ -285,7 +285,7 @@
         <td class="num {{ 'text-green' if p.annual_cash_flow >= 0 else 'text-red' }}">
           ${{ "{:,.0f}".format(p.annual_cash_flow) }}
         </td>
-        <td class="num ${{ 'text-green' if p.cumulative_cash_flow >= 0 else 'text-red' }}">
+        <td class="num {{ 'text-green' if p.cumulative_cash_flow >= 0 else 'text-red' }}">
           ${{ "{:,.0f}".format(p.cumulative_cash_flow) }}
         </td>
         <td class="num {{ 'text-green' if p.total_profit >= 0 else 'text-red' }}">
