@@ -9,6 +9,7 @@ Usage:
   python run.py --force          # Re-analyze all listings (ignore dedup)
   python run.py --zip 94087      # Override zip code
   python run.py --address "123 Main St, Sunnyvale, CA 94087" --price 1700000  # Single address
+  python run.py --with-comps          # Fetch rent/sale comps (slower)
 """
 import argparse
 import logging
@@ -43,7 +44,8 @@ def main():
     parser.add_argument("--address", type=str, help="Analyze a single address (skip search)")
     parser.add_argument("--price", type=float, help="List price for --address mode (required with --address)")
     parser.add_argument("--quiet", action="store_true", help="Minimal output")
-    parser.add_argument("--no-comps", action="store_true", help="Skip rent/sale comps (faster, uses $/sqft estimate)")
+    parser.add_argument("--no-comps", action="store_true", help="(deprecated, comps are now opt-in)")
+    parser.add_argument("--with-comps", action="store_true", help="Fetch rent/sale comps (slower, 2 extra API calls per listing)")
     args = parser.parse_args()
 
     if not args.quiet:
@@ -116,9 +118,9 @@ def main():
         address = listing.get("formatted_address", "Unknown")
         logger.info(f"  → {address}")
 
-        # Fetch comps (unless --no-comps)
+        # Fetch comps (--with-comps flag, opt-in)
         comps = None
-        if not args.no_comps:
+        if args.with_comps:
             logger.info(f"    Fetching market comps...")
             comps = compute_comps(
                 address=address,
